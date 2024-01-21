@@ -29,7 +29,21 @@ class Strings:
 
     cmake = 'install(DIRECTORY {dir} DESTINATION ${{KDE_INSTALL_WALLPAPERDIR}})\n'
 
-    meta = '[Desktop Entry]\nName={name}\n\nX-KDE-PluginInfo-Name=Next\nX-KDE-PluginInfo-Author={author}\nX-KDE-PluginInfo-Email={email}\nX-KDE-PluginInfo-License=CC-BY-SA-4.0'
+    def metadata(name, author, email):
+        return """{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": \"""" + email + """\",
+                "Name": \"""" + author + """\"
+            }
+        ],
+        "Id": "Next",
+        "License": "CC-BY-SA-4.0",
+        "Name": \"""" + name + """\"
+    }
+}
+"""
 
 # Step 0: The only third party library and warnings
 
@@ -71,13 +85,16 @@ for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_w_w)):
 next_folder = join(breeze, 'wallpapers', 'Next')
 metadata = join(next_folder, 'metadata.json')
 if exists(next_folder) and not exists(join(next_folder, '.new')):
-    old_name = next(l.strip().replace('"Name": ', '').replace('"', '') for l in
-                    open(metadata).readlines() if l.strip().startswith('"Name":'))
+    old_name = load(open(metadata))['KPlugin']['Name']
     cmake_pww = join(plasma_w_w, 'CMakeLists.txt')
     open(cmake_pww, 'a').write(Strings.cmake.format(dir=old_name))
     target_old = join(plasma_w_w, old_name)
     os.rename(next_folder, target_old)
     sizes = join(target_old, 'contents', 'images')
+    for filename in os.listdir(sizes):
+        if filename in ('5120x2880.png', '1080x1920.png'): continue
+        os.remove(join(sizes, filename))
+    sizes = join(target_old, 'contents', 'images_dark')
     for filename in os.listdir(sizes):
         if filename in ('5120x2880.png', '1080x1920.png'): continue
         os.remove(join(sizes, filename))
@@ -90,10 +107,10 @@ sizes_dark = join(next_folder, 'contents', 'images_dark')
 if not exists(next_folder):
     os.mkdir(next_folder)
     open(join(next_folder, '.new'), 'w').write('Creating folder...')
-    open(metadata, 'w').write(Strings.meta.format(
-        name=KDiag.ask("New Wallpaper Name:", "Sexy Chimps"),
-        author=KDiag.ask("New Wallpaper Author:", "Mr. Drunk Elk"),
-        email=KDiag.ask("Author Email:", "drunk@elk.com")))
+    open(metadata, 'w').write(Strings.metadata(
+        KDiag.ask("New Wallpaper Name:", "Sexy Chimps"),
+        KDiag.ask("New Wallpaper Author:", "Mr. Drunk Elk"),
+        KDiag.ask("Author Email:", "drunk@elk.com")))
     os.mkdir(content := join(next_folder, 'contents'))
     os.mkdir(sizes)
     os.mkdir(sizes_dark)
@@ -112,7 +129,8 @@ if not exists(next_folder):
         run(['python3', join(breeze, 'wallpapers', 'generate_wallpaper_sizes.py')], cwd=breeze)
     except:
         pass
-    Image.open(join(sizes, '440x247.png')).save(join(content, 'screenshot.png'), format='png')
+    # No longer needed
+    # Image.open(join(sizes, '440x247.png')).save(join(content, 'screenshot.png'), format='png')
 else: KDiag.popup('Old Next folder already made. Skipping creating it.')
 
 # Step 4: Generating Previews
