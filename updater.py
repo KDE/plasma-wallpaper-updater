@@ -126,7 +126,7 @@ if not exists(next_folder):
     copy(KDiag.get_png('Select DARK Vertical Wallpaper Image: '
         'either same as before for auto crop, or manually 9:16 crop.'),
          join(sizes_dark, 'vertical_base_size.png'))
-    KDiag.popup("I'll now do many image editing stuff. Press OK and take a coffee!")
+    KDiag.popup("Image editing in progress. Click OK and grab a coffee while it works!")
     try:
         run(['python3', join(breeze, 'wallpapers', 'generate_wallpaper_sizes.py')], cwd=breeze)
     except:
@@ -157,6 +157,6 @@ repos = ['plasma workspace wallpapers', 'plasma workspace', 'plasma-desktop', 'b
 for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_d), git.Repo(plasma_w_w)):
     repo.git.add('-A')
     repo.git.commit('-m',
-        KDiag.ask(f'Commit for {repos.pop()}', 'Moved old wallpaper, added new one, updated previews'))
+        KDiag.ask(f'Commit for {repos.pop()}', 'Move old wallpaper, add new one, update previews'))
 
 KDiag.popup("All done. You can now git push or create MRs with the commits.")
