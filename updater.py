@@ -57,22 +57,24 @@ KDiag.popup('Hey! This will remove any local uncommited change to current branch
 
 # Step 1: Getting The Repositories
 
-plasma_w, breeze, plasma_w_w = None, None, None
+plasma_w, plasma_d, breeze, plasma_w_w = None, None, None, None
 if exists('.magic.config'):
     config = load(open('.magic.config'))
     plasma_w = config.get('plasma-w', None)
+    plasma_d = config.get('plasma-d', None)
     breeze = config.get('breeze', None)
     plasma_w_w = config.get('plasma-w-w', None)
 breeze = breeze or KDiag.get_dir('Please select Breeze repository.')
 plasma_w = plasma_w or KDiag.get_dir('Please select Plasma Workspace repository.')
+plasma_d = plasma_d or KDiag.get_dir('Please select Plasma Desktop repository.')
 plasma_w_w = plasma_w_w or KDiag.get_dir('Please select P-W Wallpaper repository.')
-dump({'plasma-w': plasma_w, 'breeze': breeze, 'plasma-w-w': plasma_w_w},
+dump({'plasma-w': plasma_w, 'plasma-d': plasma_d, 'breeze': breeze, 'plasma-w-w': plasma_w_w},
      open('.magic.config', 'w'))
 
 # Step 2.1: Setting Up Git
 
 branch = KDiag.ask('Insert branch name', 'work/new_wallpaper')
-for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_w_w)):
+for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_d), git.Repo(plasma_w_w)):
     repo.git.checkout('.')
     repo.git.clean('-fd')
     repo.git.checkout('master')
@@ -124,7 +126,7 @@ if not exists(next_folder):
     copy(KDiag.get_png('Select DARK Vertical Wallpaper Image: '
         'either same as before for auto crop, or manually 9:16 crop.'),
          join(sizes_dark, 'vertical_base_size.png'))
-    KDiag.popup("I'll now do many image editing stuff. Press OK and take a coffee!")
+    KDiag.popup("Image editing in progress. Click OK and grab a coffee while it works!")
     try:
         run(['python3', join(breeze, 'wallpapers', 'generate_wallpaper_sizes.py')], cwd=breeze)
     except:
@@ -146,15 +148,15 @@ for mod in ('light', 'dark', 'twilight'):
 blurred = Image.alpha_composite(wallpaper.filter(ImageFilter.GaussianBlur(20)),
                                 Image.open("assets/login.png"))
 blurred.resize((600, 337)).save(join(lnfs['light'], 'contents', 'previews', 'lockscreen.png'), format='png')
-blurred.save(join(plasma_w, 'lookandfeel', 'sddm-theme', 'preview.png'), format='png')
+blurred.save(join(plasma_d, 'sddm-theme', 'preview.png'), format='png')
 
 # Step 4.1: Committing All Changes
 
 os.remove(join(next_folder, '.new'))
-repos = ['plasma workspace wallpapers', 'plasma workspace', 'breeze']
-for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_w_w)):
+repos = ['plasma workspace wallpapers', 'plasma workspace', 'plasma-desktop', 'breeze']
+for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_d), git.Repo(plasma_w_w)):
     repo.git.add('-A')
     repo.git.commit('-m',
-        KDiag.ask(f'Commit for {repos.pop()}', 'Moved old wallpaper, added new one, updated previews'))
+        KDiag.ask(f'Commit for {repos.pop()}', 'Move old wallpaper, add new one, update previews'))
 
 KDiag.popup("All done. You can now git push or create MRs with the commits.")
