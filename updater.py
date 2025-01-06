@@ -1,4 +1,4 @@
-from subprocess import check_output, run
+from subprocess import check_output, run, CalledProcessError
 from os.path import exists, join
 import os
 from shutil import copy
@@ -14,7 +14,10 @@ class KDiag:
 
     def get_png(text):
         KDiag.popup(text)
-        return check_output(['kdialog', '--getopenfilename', '.', 'image/png']).decode().strip()
+        try:
+            return check_output(['kdialog', '--getopenfilename', '.', 'image/png']).decode().strip()
+        except CalledProcessError:
+            return None
 
     def error(text):
         run(['kdialog', '--error', text])
@@ -116,39 +119,51 @@ if not exists(next_folder):
     os.mkdir(content := join(next_folder, 'contents'))
     os.mkdir(sizes)
     os.mkdir(sizes_dark)
+
     copy(KDiag.get_png('Select Light New PNG Wallpaper Image'),
          join(sizes, 'base_size.png'))
     copy(KDiag.get_png('Select Light Vertical Wallpaper Image: '
         'either same as before for auto crop, or manually 9:16 crop.'),
          join(sizes, 'vertical_base_size.png'))
+    light_ultrawide = KDiag.get_png('Select Light Ultrawide Wallpaper Image: '
+        'it has to be 7680x2160; just close the window if there\'s none')
+    if light_ultrawide:
+        copy(light_ultrawide, join(sizes, '7680x2160.png'))
+
     copy(KDiag.get_png('Select DARK New PNG Wallpaper Image'),
          join(sizes_dark, 'base_size.png'))
     copy(KDiag.get_png('Select DARK Vertical Wallpaper Image: '
         'either same as before for auto crop, or manually 9:16 crop.'),
          join(sizes_dark, 'vertical_base_size.png'))
+    if light_ultrawide:
+        dark_ultrawide = KDiag.get_png('Select Dark Ultrawide Wallpaper Image: '
+            'it has to be 7680x2160; just close the window if there\'s none')
+        if dark_ultrawide:
+            copy(dark_ultrawide, join(sizes_dark, '7680x2160.png'))
+
     KDiag.popup("Image editing in progress. Click OK and grab a coffee while it works!")
     try:
         run(['python3', join(breeze, 'wallpapers', 'generate_wallpaper_sizes.py')], cwd=breeze)
     except:
         pass
-    # No longer needed
-    # Image.open(join(sizes, '440x247.png')).save(join(content, 'screenshot.png'), format='png')
 else: KDiag.popup('Old Next folder already made. Skipping creating it.')
 
 # Step 4: Generating Previews
 
 wallpaper = Image.open(join(sizes, '1920x1080.png')).convert('RGBA')
+dark_wallpaper = Image.open(join(sizes_dark, '1920x1080.png')).convert('RGBA')
 lnfs = {'light': join(plasma_w, 'lookandfeel', 'org.kde.breeze'),
         'dark': join(plasma_w, 'lookandfeel', 'org.kde.breezedark'),
         'twilight': join(plasma_w, 'lookandfeel', 'org.kde.breezetwilight')}
 for mod in ('light', 'dark', 'twilight'):
+    which_wallpaper = wallpaper if mod == 'light' else dark_wallpaper
     img = Image.alpha_composite(wallpaper, Image.open(f"assets/{mod}.png"))
     img.convert('RGB').save(join(lnfs[mod], 'contents', 'previews', 'fullscreenpreview.jpg'))
-    img.resize((600, 337)).save(join(lnfs[mod], 'contents', 'previews', 'preview.png'), format='png')
+    img.resize((600, 337)).save(join(lnfs[mod], 'contents', 'previews', 'preview.png'), format='png', optimize=True)
 blurred = Image.alpha_composite(wallpaper.filter(ImageFilter.GaussianBlur(20)),
                                 Image.open("assets/login.png"))
-blurred.resize((600, 337)).save(join(lnfs['light'], 'contents', 'previews', 'lockscreen.png'), format='png')
-blurred.save(join(plasma_d, 'sddm-theme', 'preview.png'), format='png')
+blurred.resize((600, 337)).save(join(lnfs['light'], 'contents', 'previews', 'lockscreen.png'), format='png', optimize=True)
+blurred.save(join(plasma_d, 'sddm-theme', 'preview.png'), format='png', optimize=True)
 
 # Step 4.1: Committing All Changes
 
