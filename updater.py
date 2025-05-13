@@ -1,7 +1,7 @@
 from subprocess import check_output, run, CalledProcessError
 from os.path import exists, join
 import os
-from shutil import copy
+from shutil import copy, copytree
 from json import load, dump
 from PIL import Image, ImageFilter
 
@@ -85,73 +85,51 @@ for repo in (git.Repo(breeze), git.Repo(plasma_w), git.Repo(plasma_d), git.Repo(
     except: pass
     repo.git.checkout('-b', branch)
 
-# Step 2: Moving The Old Wallpaper to P-W-W
+# Step 2: Copying The Old Wallpaper to P-W-W
 
 next_folder = join(breeze, 'wallpapers', 'Next')
 metadata = join(next_folder, 'metadata.json')
-if exists(next_folder) and not exists(join(next_folder, '.new')):
-    old_name = load(open(metadata))['KPlugin']['Name']
-    cmake_pww = join(plasma_w_w, 'CMakeLists.txt')
-    open(cmake_pww, 'a').write(Strings.cmake.format(dir=old_name))
-    target_old = join(plasma_w_w, old_name)
-    os.rename(next_folder, target_old)
-    sizes = join(target_old, 'contents', 'images')
-    for filename in os.listdir(sizes):
-        if filename in ('5120x2880.png', '1080x1920.png'): continue
-        os.remove(join(sizes, filename))
-    sizes = join(target_old, 'contents', 'images_dark')
-    for filename in os.listdir(sizes):
-        if filename in ('5120x2880.png', '1080x1920.png'): continue
-        os.remove(join(sizes, filename))
-else: KDiag.popup('Old Next folder was already moved. Skipping moving it.')
+old_name = load(open(metadata))['KPlugin']['Name']
+target_old = join(plasma_w_w, old_name)
+cmake_pww = join(plasma_w_w, 'CMakeLists.txt')
+open(cmake_pww, 'a').write(Strings.cmake.format(dir=old_name))
+copytree(next_folder, target_old)
 
 # Step 3: Creating New Wallpaper Folder
 
 sizes = join(next_folder, 'contents', 'images')
 sizes_dark = join(next_folder, 'contents', 'images_dark')
-if not exists(next_folder):
-    os.mkdir(next_folder)
-    open(join(next_folder, '.new'), 'w').write('Creating folder...')
-    open(metadata, 'w').write(Strings.metadata(
-        KDiag.ask("New Wallpaper Name:", "Sexy Chimps"),
-        KDiag.ask("New Wallpaper Author:", "Mr. Drunk Elk"),
-        KDiag.ask("Author Email:", "drunk@elk.com")))
-    os.mkdir(content := join(next_folder, 'contents'))
-    os.mkdir(sizes)
-    os.mkdir(sizes_dark)
+open(join(next_folder, '.new'), 'w').write('Creating folder...')
+open(metadata, 'w').write(Strings.metadata(
+    KDiag.ask("New Wallpaper Name:", "Sexy Chimps"),
+    KDiag.ask("New Wallpaper Author:", "Mr. Drunk Elk"),
+    KDiag.ask("Author Email:", "drunk@elk.com")))
 
-    copy(KDiag.get_png('Select Light New PNG Wallpaper Image'),
-         join(sizes, 'base_size.png'))
-    copy(KDiag.get_png('Select Light Vertical Wallpaper Image: '
-        'either same as before for auto crop, or manually 9:16 crop.'),
-         join(sizes, 'vertical_base_size.png'))
-    light_ultrawide = KDiag.get_png('Select Light Ultrawide Wallpaper Image: '
+copy(KDiag.get_png('Select Light New PNG Wallpaper Image'),
+        join(sizes, '5120x2880.png'))
+copy(KDiag.get_png('Select Light Vertical Wallpaper Image: '
+    'either same as before for auto crop, or manually 9:16 crop.'),
+    join(sizes, '1440x2960.png'))
+light_ultrawide = KDiag.get_png('Select Light Ultrawide Wallpaper Image: '
+    'it has to be 7680x2160; just close the window if there\'s none')
+if light_ultrawide:
+    copy(light_ultrawide, join(sizes, '7680x2160.png'))
+
+copy(KDiag.get_png('Select DARK New PNG Wallpaper Image'),
+        join(sizes_dark, '5120x2880.png'))
+copy(KDiag.get_png('Select DARK Vertical Wallpaper Image: '
+    'either same as before for auto crop, or manually 9:16 crop.'),
+    join(sizes_dark, '1440x2960.png'))
+if light_ultrawide:
+    dark_ultrawide = KDiag.get_png('Select Dark Ultrawide Wallpaper Image: '
         'it has to be 7680x2160; just close the window if there\'s none')
-    if light_ultrawide:
-        copy(light_ultrawide, join(sizes, '7680x2160.png'))
-
-    copy(KDiag.get_png('Select DARK New PNG Wallpaper Image'),
-         join(sizes_dark, 'base_size.png'))
-    copy(KDiag.get_png('Select DARK Vertical Wallpaper Image: '
-        'either same as before for auto crop, or manually 9:16 crop.'),
-         join(sizes_dark, 'vertical_base_size.png'))
-    if light_ultrawide:
-        dark_ultrawide = KDiag.get_png('Select Dark Ultrawide Wallpaper Image: '
-            'it has to be 7680x2160; just close the window if there\'s none')
-        if dark_ultrawide:
-            copy(dark_ultrawide, join(sizes_dark, '7680x2160.png'))
-
-    KDiag.popup("Image editing in progress. Click OK and grab a coffee while it works!")
-    try:
-        run(['python3', join(breeze, 'wallpapers', 'generate_wallpaper_sizes.py')], cwd=breeze)
-    except:
-        pass
-else: KDiag.popup('Old Next folder already made. Skipping creating it.')
+    if dark_ultrawide:
+        copy(dark_ultrawide, join(sizes_dark, '7680x2160.png'))
 
 # Step 4: Generating Previews
 
-wallpaper = Image.open(join(sizes, '1920x1080.png')).convert('RGBA')
-dark_wallpaper = Image.open(join(sizes_dark, '1920x1080.png')).convert('RGBA')
+wallpaper = Image.open(join(sizes, '5120x2880.png')).resize((1920, 1080), Image.LANCZOS).convert('RGBA')
+dark_wallpaper = Image.open(join(sizes_dark, '5120x2880.png')).resize((1920, 1080), Image.LANCZOS).convert('RGBA')
 lnfs = {'light': join(plasma_w, 'lookandfeel', 'org.kde.breeze'),
         'dark': join(plasma_w, 'lookandfeel', 'org.kde.breezedark'),
         'twilight': join(plasma_w, 'lookandfeel', 'org.kde.breezetwilight')}
