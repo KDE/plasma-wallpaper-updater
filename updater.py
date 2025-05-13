@@ -135,10 +135,10 @@ lnfs = {'light': join(plasma_w, 'lookandfeel', 'org.kde.breeze'),
         'twilight': join(plasma_w, 'lookandfeel', 'org.kde.breezetwilight')}
 for mod in ('light', 'dark', 'twilight'):
     which_wallpaper = wallpaper if mod == 'light' else dark_wallpaper
-    img = Image.alpha_composite(wallpaper, Image.open(f"assets/{mod}.png"))
+    img = Image.alpha_composite(which_wallpaper, Image.open(f"assets/{mod}.png"))
     img.convert('RGB').save(join(lnfs[mod], 'contents', 'previews', 'fullscreenpreview.jpg'))
     img.resize((600, 337)).save(join(lnfs[mod], 'contents', 'previews', 'preview.png'), format='png', optimize=True)
-blurred = Image.alpha_composite(wallpaper.filter(ImageFilter.GaussianBlur(20)),
+blurred = Image.alpha_composite(which_wallpaper.filter(ImageFilter.GaussianBlur(20)),
                                 Image.open("assets/login.png"))
 blurred.resize((600, 337)).save(join(lnfs['light'], 'contents', 'previews', 'lockscreen.png'), format='png', optimize=True)
 blurred.save(join(plasma_d, 'sddm-theme', 'preview.png'), format='png', optimize=True)
