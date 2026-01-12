@@ -2,7 +2,31 @@
 
 This is a script meant to automate the process of getting a new default wallpaper in KDE Plasma.
 
-Run it with python3 in the root directory and it should be quite self-explanatory on how it works.
+
+## How to use it
+
+Open a terminal window and run the following commands:
+
+```
+# Enter the repo
+cd  [path to this repo on your local machine]
+
+# Create a new virtual environment in the current directory named "venv"
+python -m venv venv
+
+# Activate the "venv" virtual environment
+source venv/bin/activate
+
+# Install necessary Python modules into the virtual environment
+pip install gitpython pillow
+
+# Run it and follow the prompts
+python3 ./updater.py
+
+# Leave the virtual environment
+deactivate
+```
+
 
 ## Assets
 
